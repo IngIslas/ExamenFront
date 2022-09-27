@@ -3,13 +3,26 @@
     <v-container>
       <v-row justify="space-between">
         <v-col cols="2">
-          <v-btn color="green" @click="AbrirDialogo"> Agregar </v-btn>
+          <v-btn color="green" @click="AbrirDialogo('agregar')">
+            Agregar
+          </v-btn>
         </v-col>
         <v-col cols="2">
-          <v-btn color="blue"> Editar </v-btn>
+          <v-btn
+            color="blue"
+            @click="AbrirDialogo('editar')"
+            :disabled="btnEditarDisabled"
+          >
+            Editar
+          </v-btn>
         </v-col>
         <v-col cols="2">
-          <v-btn color="orange">Eliminar </v-btn>
+          <v-btn
+            color="orange"
+            @click="Eliminar"
+            :disabled="btnEliminarDisabled"
+            >Eliminar
+          </v-btn>
         </v-col>
         <v-col cols="2"> </v-col>
         <v-col cols="4">
@@ -23,6 +36,8 @@
         :items="items"
         show-select
         :search="search"
+        v-model="selected"
+        item-key="IdVideojuego"
       >
         <template v-slot:item.Consolas="{ item }">
           <div>
@@ -71,7 +86,7 @@
               <v-btn color="secondary">Cancelar</v-btn>
               <!-- <v-spacer></v-spacer> -->
               <v-col cols="1"></v-col>
-              <v-btn color="primary" @click="Insertar">Aceptar</v-btn>
+              <v-btn color="primary" @click="Aceptar(accion)">Aceptar</v-btn>
             </v-row>
           </v-container>
         </v-card-actions>
@@ -99,6 +114,7 @@ export default {
       mostrarDialogo: false,
       search: "",
       consolas: [],
+      accion: "",
       videojuego: {
         Titulo: "",
         Descripcion: "",
@@ -107,6 +123,7 @@ export default {
         Genero: "",
         Consolas: [],
       },
+      selected: [],
       headers: [
         {
           text: "Titulo",
@@ -144,27 +161,86 @@ export default {
       });
       return consolas;
     },
-    AbrirDialogo() {
+    AbrirDialogo(accion) {
+      this.accion = "agregar";
+      if (accion == "editar") {
+        this.accion = "editar";
+        this.videojuego.IdVideojuego = this.selected[0].IdVideojuego;
+        this.videojuego.Titulo = this.selected[0].Titulo;
+        this.videojuego.Descripcion = this.selected[0].Descripcion;
+        this.videojuego.Año = this.selected[0].Año;
+        this.videojuego.Calificacion = this.selected[0].Calificacion;
+        this.videojuego.Genero = this.selected[0].Genero;
+        this.videojuego.Consolas = this.selected[0].Consolas;
+      }
       this.mostrarDialogo = true;
     },
-    Insertar() {
-        console.log(this.videojuego)
-        var consolas=[]
-        this.videojuego.Consolas.forEach(consola=>{
-            consolas.push({IdConsola:consola})
-        })
-        this.videojuego.Consolas= consolas;
-      Axios.post(
-        "https://localhost:44375/api/videojuego/Insertar",
-        this.videojuego
-      )
-        .then((res) => {
-          alert(res.data);
-        })
-        .catch((error) => {
-          alert(error);
-        });
+    Aceptar() {
+      var consolas = [];
+      this.videojuego.Consolas.forEach((consola) => {
+        consolas.push({ IdConsola: consola });
+      });
+      this.videojuego.Consolas = consolas;
+      if (this.accion == "agregar") {
+        Axios.post(
+          "https://localhost:44375/api/videojuego/Insertar",
+          this.videojuego
+        )
+          .then((res) => {
+            alert(res.data);
+            this.videojuego = {};
+            this.mostrarDialogo = false;
+            this.ObtenerVideojuegos();
+          })
+          .catch((error) => {
+            alert(error);
+          });
+      } else if (this.accion == "editar") {
+        Axios.put(
+          "https://localhost:44375/api/videojuego/Actualizar",
+          this.videojuego
+        )
+          .then((res) => {
+            alert(res.data);
+            this.videojuego = {};
+            this.mostrarDialogo = false;
+            this.ObtenerVideojuegos();
+          })
+          .catch((error) => {
+            alert(error);
+          });
+      }
       this.videojuego = {};
+    },
+    ObtenerVideojuegos() {
+      Axios.get("https://localhost:44375/api/videojuego/GetVideojuegos").then(
+        (result) => {
+          this.items = result.data;
+        }
+      );
+    },
+    Eliminar() {
+      Axios.post(
+        "https://localhost:44375/api/videojuego/Eliminar",
+        this.selected
+      ).then((res) => {
+        alert(res.data);
+        this.ObtenerVideojuegos();
+      });
+    },
+  },
+  computed: {
+    btnEditarDisabled() {
+      if (this.selected.length == 1) {
+        return false;
+      }
+      return true;
+    },
+    btnEliminarDisabled() {
+      if (this.selected.length > 0) {
+        return false;
+      }
+      return true;
     },
   },
 };
