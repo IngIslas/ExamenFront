@@ -41,7 +41,7 @@
       >
         <template v-slot:item.Consolas="{ item }">
           <div>
-            {{ Consolas(item) }}
+            {{ NombresConsolas(item) }}
           </div>
         </template>
       </v-data-table>
@@ -52,32 +52,30 @@
           <v-row justify="end">
             <v-col> <h2>Agregar Videojuego</h2> </v-col>
             <v-col align="right">
-              <v-icon @click="mostrarDialogo = false">mdi-close</v-icon>
+              <v-icon @click="(mostrarDialogo = false), (videojuego = {})"
+                >mdi-close</v-icon
+              >
             </v-col>
           </v-row>
         </v-app-bar>
         <v-card-text>
-          <v-text-field label="Titulo" v-model="videojuego.Titulo">
+          <v-text-field label="Titulo" v-model="Titulo"> </v-text-field>
+          <v-text-field label="Descripcion" v-model="Descripcion">
           </v-text-field>
-          <v-text-field label="Descripcion" v-model="videojuego.Descripcion">
-          </v-text-field>
-          <v-text-field label="Año" v-model="videojuego.Año" type>
-          </v-text-field>
+          <v-text-field label="Año" v-model="Año" type> </v-text-field>
           <v-text-field
             label="Calificacion"
-            v-model="videojuego.Calificacion"
+            v-model="Calificacion"
           ></v-text-field>
-          <v-text-field
-            label="Genero"
-            v-model="videojuego.Genero"
-          ></v-text-field>
+          <v-text-field label="Genero" v-model="Genero"></v-text-field>
           <v-select
             label="Consolas"
-            v-model="videojuego.Consolas"
-            :items="consolas"
+            v-model="Consolas"
+            :items="consolasExistentes"
             multiple
             item-text="Nombre"
             item-value="IdConsola"
+            @change="ChangeConsolas"
           ></v-select>
         </v-card-text>
         <v-card-actions>
@@ -100,7 +98,7 @@ export default {
   name: "ListaVideojuegos",
   created() {
     Axios.get("https://localhost:44375/api/Consola/GetConsolas").then((res) => {
-      this.consolas = res.data;
+      this.consolasExistentes = res.data;
     });
     Axios.get("https://localhost:44375/api/videojuego/GetVideojuegos").then(
       (result) => {
@@ -113,16 +111,16 @@ export default {
     return {
       mostrarDialogo: false,
       search: "",
-      consolas: [],
+      consolasExistentes: [],
+      consolasSelected: [],
       accion: "",
-      videojuego: {
-        Titulo: "",
-        Descripcion: "",
-        Año: null,
-        Calificacion: null,
-        Genero: "",
-        Consolas: [],
-      },
+      IdVideojuego: null,
+      Titulo: "",
+      Descripcion: "",
+      Año: null,
+      Calificacion: null,
+      Genero: "",
+      Consolas: [],
       selected: [],
       headers: [
         {
@@ -154,41 +152,49 @@ export default {
     };
   },
   methods: {
-    Consolas(item) {
+    NombresConsolas(item) {
       var consolas = "";
-      item.Consolas.forEach((consola) => {
-        consolas += consola.Nombre + ", ";
-      });
+      if (item.Consolas != null) {
+        item.Consolas.forEach((consola) => {
+          consolas += consola.Nombre + ", ";
+        });
+      }
       return consolas;
     },
     AbrirDialogo(accion) {
       this.accion = "agregar";
+      this.Titulo = "";
+      this.Descripcion = "";
+      this.Año = null;
+      this.Calificacion = null;
+      this.Genero = "";
+      this.Consolas = [];
+
       if (accion == "editar") {
         this.accion = "editar";
-        this.videojuego.IdVideojuego = this.selected[0].IdVideojuego;
-        this.videojuego.Titulo = this.selected[0].Titulo;
-        this.videojuego.Descripcion = this.selected[0].Descripcion;
-        this.videojuego.Año = this.selected[0].Año;
-        this.videojuego.Calificacion = this.selected[0].Calificacion;
-        this.videojuego.Genero = this.selected[0].Genero;
-        this.videojuego.Consolas = this.selected[0].Consolas;
+        this.IdVideojuego = this.selected[0].IdVideojuego;
+        this.Titulo = this.selected[0].Titulo;
+        this.Descripcion = this.selected[0].Descripcion;
+        this.Año = this.selected[0].Año;
+        this.Calificacion = this.selected[0].Calificacion;
+        this.Genero = this.selected[0].Genero;
+        this.Consolas = this.selected[0].Consolas;
+        this.consolasSelected = this.selected[0].Consolas;
       }
       this.mostrarDialogo = true;
     },
     Aceptar() {
-      var consolas = [];
-      this.videojuego.Consolas.forEach((consola) => {
-        consolas.push({ IdConsola: consola });
-      });
-      this.videojuego.Consolas = consolas;
       if (this.accion == "agregar") {
-        Axios.post(
-          "https://localhost:44375/api/videojuego/Insertar",
-          this.videojuego
-        )
+        Axios.post("https://localhost:44375/api/videojuego/Insertar", {
+          Titulo: this.Titulo,
+          Descripcion: this.Descripcion,
+          Año: this.Año,
+          Calificacion: this.Calificacion,
+          Genero: this.Genero,
+          Consolas: this.Consolas,
+        })
           .then((res) => {
             alert(res.data);
-            this.videojuego = {};
             this.mostrarDialogo = false;
             this.ObtenerVideojuegos();
           })
@@ -196,21 +202,25 @@ export default {
             alert(error);
           });
       } else if (this.accion == "editar") {
-        Axios.put(
-          "https://localhost:44375/api/videojuego/Actualizar",
-          this.videojuego
-        )
+        Axios.put("https://localhost:44375/api/videojuego/Actualizar", {
+          IdVideojuego: this.IdVideojuego,
+          Titulo: this.Titulo,
+          Descripcion: this.Descripcion,
+          Año: this.Año,
+          Calificacion: this.Calificacion,
+          Genero: this.Genero,
+          Consolas: this.Consolas,
+        })
           .then((res) => {
             alert(res.data);
-            this.videojuego = {};
             this.mostrarDialogo = false;
+            this.selected = [];
             this.ObtenerVideojuegos();
           })
           .catch((error) => {
             alert(error);
           });
       }
-      this.videojuego = {};
     },
     ObtenerVideojuegos() {
       Axios.get("https://localhost:44375/api/videojuego/GetVideojuegos").then(
@@ -227,6 +237,15 @@ export default {
         alert(res.data);
         this.ObtenerVideojuegos();
       });
+    },
+    ChangeConsolas() {
+      var consolas = [];
+      this.Consolas.forEach((consola) => {
+        consolas.push({
+          IdConsola: consola,
+        });
+      });
+      this.Consolas = consolas;
     },
   },
   computed: {
