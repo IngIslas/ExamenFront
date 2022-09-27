@@ -56,15 +56,22 @@
             label="Genero"
             v-model="videojuego.Genero"
           ></v-text-field>
-          <v-select label="Consolas" v-model="videojuego.Consolas"></v-select>
+          <v-select
+            label="Consolas"
+            v-model="videojuego.Consolas"
+            :items="consolas"
+            multiple
+            item-text="Nombre"
+            item-value="IdConsola"
+          ></v-select>
         </v-card-text>
         <v-card-actions>
           <v-container>
             <v-row justify="end">
-                <v-btn color="secondary">Cancelar</v-btn>
-                <!-- <v-spacer></v-spacer> -->
-                <v-col cols="1"></v-col>
-                <v-btn color="primary">Aceptar</v-btn>
+              <v-btn color="secondary">Cancelar</v-btn>
+              <!-- <v-spacer></v-spacer> -->
+              <v-col cols="1"></v-col>
+              <v-btn color="primary" @click="Insertar">Aceptar</v-btn>
             </v-row>
           </v-container>
         </v-card-actions>
@@ -77,7 +84,10 @@ import Axios from "axios";
 export default {
   name: "ListaVideojuegos",
   created() {
-    Axios.get("https://localhost:44375/api/videojuego/GetVideojuegos/").then(
+    Axios.get("https://localhost:44375/api/Consola/GetConsolas").then((res) => {
+      this.consolas = res.data;
+    });
+    Axios.get("https://localhost:44375/api/videojuego/GetVideojuegos").then(
       (result) => {
         this.items = result.data;
       }
@@ -88,6 +98,7 @@ export default {
     return {
       mostrarDialogo: false,
       search: "",
+      consolas: [],
       videojuego: {
         Titulo: "",
         Descripcion: "",
@@ -134,8 +145,26 @@ export default {
       return consolas;
     },
     AbrirDialogo() {
-      console.log("Abrir");
       this.mostrarDialogo = true;
+    },
+    Insertar() {
+        console.log(this.videojuego)
+        var consolas=[]
+        this.videojuego.Consolas.forEach(consola=>{
+            consolas.push({IdConsola:consola})
+        })
+        this.videojuego.Consolas= consolas;
+      Axios.post(
+        "https://localhost:44375/api/videojuego/Insertar",
+        this.videojuego
+      )
+        .then((res) => {
+          alert(res.data);
+        })
+        .catch((error) => {
+          alert(error);
+        });
+      this.videojuego = {};
     },
   },
 };
